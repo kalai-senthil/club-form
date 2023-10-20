@@ -1,15 +1,11 @@
 import { component$, Slot } from "@builder.io/qwik";
 import { routeLoader$ } from "@builder.io/qwik-city";
-import type { RequestHandler } from "@builder.io/qwik-city";
+import type { RequestHandler, JSONObject } from "@builder.io/qwik-city";
 
-import {
-  JSONObject,
-  RequestEventAction,
-  routeAction$,
-} from "@builder.io/qwik-city";
+import { routeAction$ } from "@builder.io/qwik-city";
 import { collection, doc, getDocs, setDoc } from "firebase/firestore";
 import { db } from "~/services/firebase";
-import { Domain } from ".";
+import type { Domain } from ".";
 export const onGet: RequestHandler = async ({ cacheControl }) => {
   // Control caching for this request for best performance and to reduce hosting costs:
   // https://qwik.builder.io/docs/caching/
@@ -37,54 +33,49 @@ export default component$(() => {
   );
 });
 
-export const useGetDomains = routeLoader$(async (requestEvent) => {
+export const useGetDomains = routeLoader$(async () => {
   const domainsDocs = await getDocs(collection(db, "domainNames"));
   return domainsDocs.docs.map((e) => ({ ...e.data(), id: e.id })) as Domain[];
 });
 
-export const useSubmitForm = routeAction$(
-  async (data: JSONObject, req: RequestEventAction) => {
-    if (data["email"] === "") {
-      return { success: false, msg: "Invalid Email" };
-    }
-    if (data["name"] === "") {
-      return { success: false, msg: "Provide your name" };
-    }
-    if (data["domain"] === "") {
-      return { success: false, msg: "Select interested domain" };
-    }
-    if (data["enroll"] === "") {
-      return { success: false, msg: "Provide enrollment no." };
-    }
-    // const domains = [
-    //   "Full Stack Web Development",
-    //   "Front End Developer",
-    //   "Backend Developer",
-    //   "App Development",
-    //   "Cybersecurity",
-    //   "AR & VR Development",
-    //   "UI/UX",
-    //   "Blockchain",
-    //   "AI & ML & DL & NLP",
-    //   "IOT",
-    //   "Robotics",
-    //   "3D Modelling",
-    //   "DevOps",
-    // ];
-    // for (let index = 0; index < domains.length; index++) {
-    //   const domain = domains[index];
-    //   addDoc(collection(db, "domainNames"), {
-    //     name: domain,
-    //   });
-    // }
-    try {
-      const docAdded = await setDoc(
-        doc(db, `submissions/${data["enroll"]}`),
-        data
-      );
-      return { success: true, msg: "Form Submitted" };
-    } catch (error) {
-      return { success: false, msg: `${error}` };
-    }
+export const useSubmitForm = routeAction$(async (data: JSONObject) => {
+  if (data["email"] === "") {
+    return { success: false, msg: "Invalid Email" };
   }
-);
+  if (data["name"] === "") {
+    return { success: false, msg: "Provide your name" };
+  }
+  if (data["domain"] === "") {
+    return { success: false, msg: "Select interested domain" };
+  }
+  if (data["enroll"] === "") {
+    return { success: false, msg: "Provide enrollment no." };
+  }
+  // const domains = [
+  //   "Full Stack Web Development",
+  //   "Front End Developer",
+  //   "Backend Developer",
+  //   "App Development",
+  //   "Cybersecurity",
+  //   "AR & VR Development",
+  //   "UI/UX",
+  //   "Blockchain",
+  //   "AI & ML & DL & NLP",
+  //   "IOT",
+  //   "Robotics",
+  //   "3D Modelling",
+  //   "DevOps",
+  // ];
+  // for (let index = 0; index < domains.length; index++) {
+  //   const domain = domains[index];
+  //   addDoc(collection(db, "domainNames"), {
+  //     name: domain,
+  //   });
+  // }
+  try {
+    await setDoc(doc(db, `submissions/${data["enroll"]}`), data);
+    return { success: true, msg: "Form Submitted" };
+  } catch (error) {
+    return { success: false, msg: `${error}` };
+  }
+});
