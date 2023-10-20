@@ -4,12 +4,27 @@
 
 @layer base {
   html {
-    @apply text-white;
+    @apply font-[Poppins] text-white bg-black;
   }
+}
+.material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
 }
 @layer components {
   input {
     @apply bg-transparent border p-2 rounded-md;
+  }
+  td,
+  th,
+  table {
+    @apply border border-collapse p-5;
+  }
+  th > div {
+    @apply flex gap-2 justify-center items-center;
   }
   button {
     @apply cursor-pointer;

@@ -2,6 +2,14 @@ import { component$, Slot } from "@builder.io/qwik";
 import { routeLoader$ } from "@builder.io/qwik-city";
 import type { RequestHandler } from "@builder.io/qwik-city";
 
+import {
+  JSONObject,
+  RequestEventAction,
+  routeAction$,
+} from "@builder.io/qwik-city";
+import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+import { db } from "~/services/firebase";
+import { Domain } from ".";
 export const onGet: RequestHandler = async ({ cacheControl }) => {
   // Control caching for this request for best performance and to reduce hosting costs:
   // https://qwik.builder.io/docs/caching/
@@ -29,17 +37,13 @@ export default component$(() => {
   );
 });
 
-import {
-  JSONObject,
-  RequestEventAction,
-  routeAction$,
-} from "@builder.io/qwik-city";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "~/services/firebase";
+export const useGetDomains = routeLoader$(async (requestEvent) => {
+  const domainsDocs = await getDocs(collection(db, "domainNames"));
+  return domainsDocs.docs.map((e) => ({ ...e.data(), id: e.id })) as Domain[];
+});
+
 export const useSubmitForm = routeAction$(
   async (data: JSONObject, req: RequestEventAction) => {
-    console.log(data);
-
     if (data["email"] === "") {
       return { success: false, msg: "Invalid Email" };
     }
