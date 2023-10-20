@@ -1,108 +1,148 @@
-import { component$ } from "@builder.io/qwik";
-import type { DocumentHead } from "@builder.io/qwik-city";
-
-import Counter from "~/components/starter/counter/counter";
-import Hero from "~/components/starter/hero/hero";
-import Infobox from "~/components/starter/infobox/infobox";
-import Starter from "~/components/starter/next-steps/next-steps";
+import { component$, useSignal, useTask$ } from "@builder.io/qwik";
+import { Form, type DocumentHead, routeLoader$ } from "@builder.io/qwik-city";
+import { useSubmitForm } from "./layout";
+import { isServer } from "@builder.io/qwik/build";
+import { db } from "~/services/firebase";
+import { collection, getDocs } from "firebase/firestore";
+type Domain = {
+  name: string;
+  id: string;
+};
+export const useGetDomains = routeLoader$(async (requestEvent) => {
+  const domainsDocs = await getDocs(collection(db, "domainNames"));
+  return domainsDocs.docs.map((e) => ({ ...e.data(), id: e.id })) as Domain[];
+});
 
 export default component$(() => {
+  const submitForm = useSubmitForm();
+  const domains = useGetDomains();
+  const searchVal = useSignal<string>("");
+  const domainSelected = useSignal<Domain>();
+  useTask$(({ track }) => {
+    track(() => submitForm.value);
+    if (isServer) return;
+    alert(submitForm.value?.msg);
+  });
+
   return (
-    <>
-      <Hero />
-      <Starter />
-
-      <div role="presentation" class="ellipsis"></div>
-      <div role="presentation" class="ellipsis ellipsis-purple"></div>
-
-      <div class="container container-center container-spacing-xl">
-        <h3>
-          You can <span class="highlight">count</span>
-          <br /> on me
-        </h3>
-        <Counter />
+    <section class="flex flex-col items-center justify-center gap-2 h-screen w-screen bg-black">
+      <div class="bg-white text-black p-4 w-3/4 lg:max-w-xl rounded-lg ">
+        <h1 class="text-2xl ">Club Regsitration Form</h1>
+        <p>
+          Dear students, We would like to inform you that we are in the process
+          of organizing a division of students based on the specific domain or
+          technology preferences you have for your studies. To facilitate this,
+          we kindly request that each of you provide us with your details and
+          the specific domain of interest you wish to pursue. Your cooperation
+          in this matter will greatly assist us in making appropriate
+          arrangements for your academic endeavors.
+        </p>
       </div>
-
-      <div class="container container-flex">
-        <Infobox>
-          <div q:slot="title" class="icon icon-cli">
-            CLI Commands
+      {submitForm.value?.success === true ? (
+        <span>Form Submitted</span>
+      ) : (
+        <Form
+          action={submitForm}
+          class="flex flex-col  w-3/4 lg:max-w-xl gap-5"
+        >
+          <input
+            class="p-2.5"
+            type="text"
+            id="email"
+            name="email"
+            placeholder="Enter Email"
+          />
+          <input
+            class="p-2.5"
+            type="text"
+            id="name"
+            name="name"
+            placeholder="Name"
+          />
+          <input
+            class="p-2.5"
+            type="text"
+            id="enroll"
+            name="enroll"
+            placeholder="Your Enrollment No."
+          />
+          <input
+            type="text"
+            value={searchVal.value}
+            onKeyUp$={(e) => {
+              if (e.key === "Enter") {
+                if (searchVal.value !== "") {
+                  const domain = domains.value.find((e) =>
+                    e.name.toLowerCase().includes(searchVal.value.toLowerCase())
+                  );
+                  if (domain) {
+                    domainSelected.value = domain;
+                    searchVal.value = "";
+                  }
+                }
+              }
+            }}
+            onInput$={(e: InputEvent) => {
+              searchVal.value = (e.target as HTMLInputElement).value;
+            }}
+            placeholder="Type the domain"
+          />
+          <input
+            type="hidden"
+            value={domainSelected?.value?.id}
+            name="domain"
+          />
+          <div class="relative">
+            {
+              <section class="rounded-md max-h-32 absolute w-full z-10 bg-black top-0 overflow-auto">
+                {!domainSelected && <span>No Domains Selected</span>}
+                {searchVal.value !== "" &&
+                  domains.value.map((domain) => {
+                    return (
+                      domain.name
+                        .toLowerCase()
+                        .includes(searchVal.value.toLowerCase()) && (
+                        <option
+                          onClick$={() => {
+                            domainSelected.value = domain;
+                            searchVal.value = "";
+                          }}
+                          key={domain.id}
+                          class="p-2 cursor-pointer hover:bg-gray-500"
+                          value={domain.id}
+                        >
+                          {domain.name}
+                        </option>
+                      )
+                    );
+                  })}
+              </section>
+            }
           </div>
-          <>
-            <p>
-              <code>npm run dev</code>
-              <br />
-              Starts the development server and watches for changes
-            </p>
-            <p>
-              <code>npm run preview</code>
-              <br />
-              Creates production build and starts a server to preview it
-            </p>
-            <p>
-              <code>npm run build</code>
-              <br />
-              Creates production build
-            </p>
-            <p>
-              <code>npm run qwik add</code>
-              <br />
-              Runs the qwik CLI to add integrations
-            </p>
-          </>
-        </Infobox>
-
-        <div>
-          <Infobox>
-            <div q:slot="title" class="icon icon-apps">
-              Example Apps
-            </div>
-            <p>
-              Have a look at the <a href="/demo/flower">Flower App</a> or the{" "}
-              <a href="/demo/todolist">Todo App</a>.
-            </p>
-          </Infobox>
-
-          <Infobox>
-            <div q:slot="title" class="icon icon-community">
-              Community
-            </div>
-            <ul>
-              <li>
-                <span>Questions or just want to say hi? </span>
-                <a href="https://qwik.builder.io/chat" target="_blank">
-                  Chat on discord!
-                </a>
-              </li>
-              <li>
-                <span>Follow </span>
-                <a href="https://twitter.com/QwikDev" target="_blank">
-                  @QwikDev
-                </a>
-                <span> on Twitter</span>
-              </li>
-              <li>
-                <span>Open issues and contribute on </span>
-                <a href="https://github.com/BuilderIO/qwik" target="_blank">
-                  GitHub
-                </a>
-              </li>
-              <li>
-                <span>Watch </span>
-                <a href="https://qwik.builder.io/media/" target="_blank">
-                  Presentations, Podcasts, Videos, etc.
-                </a>
-              </li>
-            </ul>
-          </Infobox>
-        </div>
-      </div>
-    </>
+          {domainSelected.value && (
+            <h4>Domain Selected: {domainSelected.value?.name}</h4>
+          )}
+          <button
+            disabled={submitForm.isRunning}
+            class="bg-white text-black mt-3 p-3 rounded-md"
+          >
+            {submitForm.isRunning ? (
+              <div class="flex justify-center items-center gap-2">
+                <span class="w-5 aspect-square rounded-full border-t-transparent border-2 animate-spin border-black inline-block"></span>{" "}
+                <span>Loading</span>
+              </div>
+            ) : (
+              "Submit"
+            )}
+          </button>
+        </Form>
+      )}
+    </section>
   );
 });
 
 export const head: DocumentHead = {
-  title: "Welcome to Qwik",
+  title: "Techknocks Club",
   meta: [
     {
       name: "description",
